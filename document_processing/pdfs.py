@@ -2,7 +2,7 @@ import logging
 
 import pymupdf  # type: ignore
 
-from dora_ki.doc_processing.base import BaseFileProcessor
+from document_processing.base import BaseFileProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -30,4 +30,3 @@ class PdfProcessor(BaseFileProcessor):
     #         text = text_page.extractTEXT()
     #         text_contents += text
     #     return text_contents
-

@@ -5,10 +5,9 @@ from llama_index.core.schema import Document, TextNode
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding  # type: ignore
 from pydantic import BaseModel  # type: ignore
 
-from dora_ki.doc_processing.base import BaseChunker
-from dora_ki.doc_processing.factory import file_processor_factory
-from dora_ki.doc_processing.word_docs import WordDocProcessor
-from dora_ki.prompts import Prompt
+from document_processing.base import BaseChunker
+from document_processing.factory import file_processor_factory
+from document_processing.word_docs import WordDocProcessor
 
 
 class SemanticChunker(BaseChunker):
@@ -112,22 +111,6 @@ class Chunks(BaseModel):
         self.metas.pop()
 
 
-def get_relevant_chunks(document_db, question, question_embedding, max_chunks_to_include, prompt: Prompt):
-    """Retrieves the chunks from the contract text which most closely match the question.
-    If the chunks are too long, it will reduce the number of chunks to include until the prompt fits the model context window.
-    """
-    results = document_db.embedding_query_collection(question_embedding, max_chunks_to_include)
-    documents = results["documents"]
-    metadatas = results["metadatas"]
-    chunks = Chunks(chunks=documents, metas=metadatas)
-    while True:
-        user_prompt = prompt.format_user_prompt({"article": question, "contract": chunks.join_self_chunks()})
-        if not prompt.prompt_tokens_above_limit(user_prompt):
-            break
-        chunks.pop_chunk()
-    return chunks
-
-
 def chunk_input_file(file, embedding_model, n_overlap, text_extraction_kwargs):
     """Takes an input file and chunks it into overlapping chunks which can be added to a vector DB."""
     chunker = SemanticChunker(embed_model=embedding_model)
@@ -136,4 +119,3 @@ def chunk_input_file(file, embedding_model, n_overlap, text_extraction_kwargs):
     text = processor.extract_text(**text_extraction_kwargs if isinstance(processor, WordDocProcessor) else {})
     text_nodes = processor.chunk(text, num_words_overlap=n_overlap)
     return text_nodes
-

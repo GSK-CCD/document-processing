@@ -1,12 +1,9 @@
-from typing import Optional
-
 from docx import Document
-from docx.document import Document as DocumentObject
 from docx.oxml.table import CT_Tbl as table_type
 from docx.oxml.text.paragraph import CT_P as paragraph_type
 from docx.table import Table
 
-from dora_ki.doc_processing.base import BaseFileProcessor
+from document_processing.base import BaseFileProcessor
 
 
 class WordDocProcessor(BaseFileProcessor):
@@ -34,4 +31,3 @@ class WordDocProcessor(BaseFileProcessor):
                 table_cell = row.cells[target_column]
             table_text += table_cell.text.strip()
         return table_text
-

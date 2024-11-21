@@ -12,4 +12,3 @@ class FolderProcessing:
         folder = pathlib.Path(self.folder_name)
         files = list(folder.glob(file_pattern))
         return files
-
