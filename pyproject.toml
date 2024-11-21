@@ -15,6 +15,7 @@ llama-index-embeddings-azure-openai = "^0.2.5"
 tiktoken = "^0.8.0"
 python-docx = "^1.1.2"
 isort = "^5.13.2"
+pymupdf4llm = "^0.0.17"
 
 
 [build-system]

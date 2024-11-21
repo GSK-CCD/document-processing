@@ -1,6 +1,7 @@
 import logging
 
 import pymupdf  # type: ignore
+import pymupdf4llm
 
 from document_processing.base import BaseFileProcessor
 
@@ -30,3 +31,7 @@ class PdfProcessor(BaseFileProcessor):
     #         text = text_page.extractTEXT()
     #         text_contents += text
     #     return text_contents
+
+    def extract_text_llm(self) -> str:
+        md_text = pymupdf4llm.to_markdown(self.file_name)
+        return md_text
