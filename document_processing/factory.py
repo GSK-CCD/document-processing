@@ -11,3 +11,7 @@ file_type_processors = {"pdf": PdfProcessor, "docx": WordDocProcessor}
 def file_processor_factory(file_path: str) -> Type[BaseFileProcessor]:
     file_type = Path(file_path).suffix[1:]
     return file_type_processors[file_type]
+
+
+def chunking_factory(file_path: str) -> Type[BaseFileProcessor]:
+    pass

@@ -1,4 +1,4 @@
-from typing import List, cast
+from typing import Callable, List, cast
 
 from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.core.schema import Document, TextNode
@@ -30,50 +30,80 @@ class SemanticChunker(BaseChunker):
 
         text_document = Document(text=text)
 
-        nodes = cast(
-            List[TextNode],
-            self.sentence_splitter.get_nodes_from_documents([text_document]),
-        )
+        nodes = cast(List[TextNode], self.sentence_splitter.get_nodes_from_documents([text_document]))
 
-        new_nodes = []
-        for i in range(len(nodes)):
-            node = nodes[i]
-            if num_words_overlap:
-                previous_node = None
-                next_node = None
-                if i > 0:
-                    previous_node = nodes[i - 1]
-                if i < len(nodes) - 1:
-                    next_node = nodes[i + 1]
-                new_node = TextNode(text=self.add_context(node, previous_node, next_node, num_words_overlap))
+        return self.add_context(nodes, num_words_overlap)
+
+
+class FunctionChunker(BaseChunker):
+    """
+    A chunker that uses any user defined function to split the text into chunks.
+    """
+
+    def __init__(self, min_length: int, max_length: int, splitting_function: Callable[[str], List[TextNode]]):
+        self.min_length = min_length
+        self.max_length = max_length
+        self.splitting_function = splitting_function
+
+    def chunk(self, text: str, num_words_overlap: int) -> List[TextNode]:
+        chunks = self.splitting_function(text)
+        chunks = self.ensure_chunks_large_enough(chunks)
+        chunks = self.ensure_chunks_small_enough(chunks)
+        return self.add_context(chunks, num_words_overlap)
+
+    def ensure_chunks_large_enough(self, chunks):
+        all_chunks_above_min = False
+        while not all_chunks_above_min:
+            all_chunks_above_min = all(len(chunk) >= self.min_length for chunk in chunks)
+            chunks = self.combine_short_strings(chunks, self.min_length)
+        return chunks
+
+    def ensure_chunks_small_enough(self, chunks):
+        all_chunks_below_max = False
+        while not all_chunks_below_max:
+            all_chunks_below_max = all(len(chunk) <= self.max_length for chunk in chunks)
+            chunks = self.split_and_insert(chunks, self.max_length, self.splitting_function)
+        return chunks
+
+    def combine_short_strings(strings, min_length):
+        """Combines chunks that are too short into the previous chunk."""
+        result = []
+        buffer = ""
+        for string in strings:
+            if len(string) < min_length:
+                # Combine short strings with the buffer
+                buffer += string
             else:
-                new_node = TextNode(text=node.text)
-            new_nodes.append(new_node)
-        return new_nodes
+                # Append buffer to the result if it exists
+                if buffer:
+                    if result:
+                        result[-1] += buffer
+                    else:
+                        result.append(buffer)
+                    buffer = ""
+                # Append the current string to the result
+                result.append(string)
+        # Append any remaining buffer to the last string in the result
+        if buffer:
+            if result:
+                result[-1] += buffer
+            else:
+                result.append(buffer)
+        return result
 
-    def extract_text(self, text: str, num_spaces: int, from_start: bool = False):
-        """Extracts text from a string, either from the start or the end. Used to get some overlapping
-        text from the surrounding chunks. Breaks the original text up at each space in the sentence
-        and then joins the words back together based on the number of spaces requested.
+    def split_and_insert(li, max_size, splitting_function):
         """
-        words = text.split()
-        if from_start:
-            return " ".join(words[: num_spaces + 1])
-        else:
-            return " ".join(words[-num_spaces:])
-
-    def add_context(self, node, previous_node, next_node, n_words: int) -> str:
-        """Adds some overlapping text from the previous and next chunks to the current chunk."""
-        text = node.text
-        n_spaces = n_words - 1
-        if previous_node is not None:
-            previous_text = self.extract_text(previous_node.text, n_spaces)
-            text = f"{previous_text}\n\n{text}"
-        if next_node is not None:
-            next_text = self.extract_text(next_node.text, n_spaces, from_start=True)
-            text = f"{text}\n\n{next_text}"
-
-        return text
+        Splits chunks that are too long into smaller chunks using the provided splitting function.
+        """
+        new_li = []
+        for item in li:
+            if len(item) > max_size:
+                # Split the long chunk into smaller parts
+                split_parts = splitting_function(item)
+                new_li.extend(split_parts)  # Add the split parts to the new list
+            else:
+                new_li.append(item)  # Add the chunk as is if it's within the size limit
+        return new_li
 
 
 class ChunkMeta(BaseModel):
