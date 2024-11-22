@@ -6,6 +6,7 @@ from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding  # type: ig
 from pydantic import BaseModel  # type: ignore
 
 from document_processing.base import BaseChunker
+from document_processing.embeddings import check_n_embeddings
 from document_processing.factory import file_processor_factory
 from document_processing.word_docs import WordDocProcessor
 
@@ -40,70 +41,85 @@ class FunctionChunker(BaseChunker):
     A chunker that uses any user defined function to split the text into chunks.
     """
 
-    def __init__(self, min_length: int, max_length: int, splitting_function: Callable[[str], List[TextNode]]):
-        self.min_length = min_length
-        self.max_length = max_length
+    def __init__(self, min_length_tokens: int, max_length_tokens: int, splitting_function: Callable[[str], List[TextNode]], chat_model="gpt-4o"):
+        self.min_length = min_length_tokens
+        self.max_length = max_length_tokens
         self.splitting_function = splitting_function
+        self.chat_model = chat_model
 
     def chunk(self, text: str, num_words_overlap: int) -> List[TextNode]:
         chunks = self.splitting_function(text)
-        chunks = self.ensure_chunks_large_enough(chunks)
         chunks = self.ensure_chunks_small_enough(chunks)
+        chunks = self.ensure_chunks_large_enough(chunks)
         return self.add_context(chunks, num_words_overlap)
 
-    def ensure_chunks_large_enough(self, chunks):
+    def ensure_chunks_large_enough(self, chunks: List[TextNode]) -> List[TextNode]:
         all_chunks_above_min = False
-        while not all_chunks_above_min:
-            all_chunks_above_min = all(len(chunk) >= self.min_length for chunk in chunks)
-            chunks = self.combine_short_strings(chunks, self.min_length)
+        while True:
+            all_chunks_above_min = all(check_n_embeddings(chunk.text, self.chat_model) >= self.min_length for chunk in chunks)
+            if all_chunks_above_min:
+                break
+            chunks = self.combine_short_chunks(chunks)
         return chunks
 
     def ensure_chunks_small_enough(self, chunks):
         all_chunks_below_max = False
-        while not all_chunks_below_max:
-            all_chunks_below_max = all(len(chunk) <= self.max_length for chunk in chunks)
-            chunks = self.split_and_insert(chunks, self.max_length, self.splitting_function)
+        while True:
+            all_chunks_below_max = all(check_n_embeddings(chunk.text, self.chat_model) <= self.max_length for chunk in chunks)
+            if all_chunks_below_max:
+                break
+            chunks = self.split_large_chunks_down(chunks)
         return chunks
 
-    def combine_short_strings(strings, min_length):
+    def combine_short_chunks(self, nodes: List[TextNode]) -> List[TextNode]:
         """Combines chunks that are too short into the previous chunk."""
-        result = []
+        result: List[TextNode] = []
         buffer = ""
-        for string in strings:
-            if len(string) < min_length:
+        for node in nodes:
+            string = node.text
+            if check_n_embeddings(string, self.chat_model) < self.min_length:
                 # Combine short strings with the buffer
                 buffer += string
             else:
                 # Append buffer to the result if it exists
                 if buffer:
                     if result:
-                        result[-1] += buffer
+                        last_node = result[-1]
+                        last_node.text += buffer
+                        result[-1] = last_node
                     else:
-                        result.append(buffer)
+                        result.append(TextNode(text=buffer))
                     buffer = ""
                 # Append the current string to the result
-                result.append(string)
+                result.append(TextNode(text=string))
         # Append any remaining buffer to the last string in the result
         if buffer:
             if result:
-                result[-1] += buffer
+                last_node = result[-1]
+                last_node.text += buffer
+                result[-1] = last_node
             else:
-                result.append(buffer)
+                result.append(TextNode(text=buffer))
+        result = self._add_length_metadata(result)
         return result
 
-    def split_and_insert(li, max_size, splitting_function):
+    def split_large_chunks_down(self, nodes: List[TextNode]):
         """
         Splits chunks that are too long into smaller chunks using the provided splitting function.
         """
-        new_li = []
-        for item in li:
-            if len(item) > max_size:
-                # Split the long chunk into smaller parts
-                split_parts = splitting_function(item)
-                new_li.extend(split_parts)  # Add the split parts to the new list
+        new_nodes = []
+        for node in nodes:
+            text = node.text
+            if check_n_embeddings(text, self.chat_model) > self.max_length:
+                split_parts = self.splitting_function(text)
+                new_nodes.extend(split_parts)
             else:
-                new_li.append(item)  # Add the chunk as is if it's within the size limit
-        return new_li
+                new_nodes.append(TextNode(text=text))
+        new_nodes = self._add_length_metadata(new_nodes)
+        return new_nodes
+
+    def _add_length_metadata(self, chunks: List[TextNode]) -> List[TextNode]:
+        return [TextNode(text=chunk.text, metadata={"length": len(chunk.text)}) for chunk in chunks]
 
 
 class ChunkMeta(BaseModel):
