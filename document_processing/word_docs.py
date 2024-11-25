@@ -29,5 +29,5 @@ class WordDocProcessor(BaseFileProcessor):
                 table_cell = row.cells[0]
             else:
                 table_cell = row.cells[target_column]
-            table_text += table_cell.text.strip()
+            table_text += table_cell.text
         return table_text
