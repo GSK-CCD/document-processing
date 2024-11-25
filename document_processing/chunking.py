@@ -126,7 +126,6 @@ class FunctionChunker(BaseChunker):
                 new_nodes.extend(split_parts)
             else:
                 new_nodes.append(TextNode(text=text))
-        new_nodes = self._add_metadata(new_nodes)
         return new_nodes
 
     async def achunk(self, text: str, num_words_overlap: int):
@@ -158,7 +157,6 @@ class FunctionChunker(BaseChunker):
                 new_nodes.extend(split_parts)
             else:
                 new_nodes.append(TextNode(text=text))
-        new_nodes = self._add_metadata(new_nodes)
         return new_nodes
 
     def _add_metadata(self, chunks: List[TextNode]) -> List[TextNode]:
