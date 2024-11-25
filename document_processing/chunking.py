@@ -120,11 +120,16 @@ class FunctionChunker(BaseChunker):
         return new_nodes
 
     def _add_metadata(self, chunks: List[TextNode]) -> List[TextNode]:
-        return [TextNode(text=chunk.text, metadata={"length": len(chunk.text), "language": langdetect.detect(chunk.text)}) for chunk in chunks]
+        return [
+            TextNode(text=chunk.text, metadata=ChunkMeta(chunk_number=i, length=len(chunk.text), lang=langdetect.detect(chunk.text)).model_dump())
+            for i, chunk in enumerate(chunks)
+        ]
 
 
 class ChunkMeta(BaseModel):
     chunk_number: int
+    length: int
+    lang: str
 
 
 class Chunks(BaseModel):
