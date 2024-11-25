@@ -1,4 +1,4 @@
-from typing import Callable, List, cast
+from typing import Any, Awaitable, Callable, List, Union, cast
 
 import langdetect
 from llama_index.core.node_parser import SemanticSplitterNodeParser
@@ -42,7 +42,13 @@ class FunctionChunker(BaseChunker):
     A chunker that uses any user defined function to split the text into chunks.
     """
 
-    def __init__(self, min_length_tokens: int, max_length_tokens: int, splitting_function: Callable[[str], List[TextNode]], chat_model="gpt-4o"):
+    def __init__(
+        self,
+        min_length_tokens: int,
+        max_length_tokens: int,
+        splitting_function: Union[Awaitable[List[TextNode]], Callable[[str], List[TextNode]]],
+        chat_model="gpt-4o",
+    ):
         self.min_length = min_length_tokens
         self.max_length = max_length_tokens
         self.splitting_function = splitting_function
@@ -52,7 +58,8 @@ class FunctionChunker(BaseChunker):
         chunks = self.splitting_function(text)
         chunks = self.ensure_chunks_small_enough(chunks)
         chunks = self.ensure_chunks_large_enough(chunks)
-        return self.add_context(chunks, num_words_overlap)
+        chunks = self.add_context(chunks, num_words_overlap)
+        return self._add_metadata(chunks)
 
     def ensure_chunks_large_enough(self, chunks: List[TextNode]) -> List[TextNode]:
         all_chunks_above_min = False
@@ -113,6 +120,38 @@ class FunctionChunker(BaseChunker):
             text = node.text
             if check_n_embeddings(text, self.chat_model) > self.max_length:
                 split_parts = self.splitting_function(text)
+                new_nodes.extend(split_parts)
+            else:
+                new_nodes.append(TextNode(text=text))
+        new_nodes = self._add_metadata(new_nodes)
+        return new_nodes
+
+    async def achunk(self, text: str, num_words_overlap: int):
+        print(f"Processing {text[:40]}")
+        chunks = await self.splitting_function(text)  # type: ignore
+        chunks = await self.async_ensure_chunks_small_enough(chunks)
+        chunks = self.ensure_chunks_large_enough(chunks)
+        chunks = self.add_context(chunks, num_words_overlap)
+        return self._add_metadata(chunks)
+
+    async def async_ensure_chunks_small_enough(self, chunks):
+        all_chunks_below_max = False
+        while True:
+            all_chunks_below_max = all(check_n_embeddings(chunk.text, self.chat_model) <= self.max_length for chunk in chunks)
+            if all_chunks_below_max:
+                break
+            chunks = await self.async_split_large_chunks_down(chunks)
+        return chunks
+
+    async def async_split_large_chunks_down(self, nodes: List[TextNode]):
+        """
+        Splits chunks that are too long into smaller chunks using the provided splitting function.
+        """
+        new_nodes = []
+        for node in nodes:
+            text = node.text
+            if check_n_embeddings(text, self.chat_model) > self.max_length:
+                split_parts = await self.splitting_function(text)  # type: ignore
                 new_nodes.extend(split_parts)
             else:
                 new_nodes.append(TextNode(text=text))
