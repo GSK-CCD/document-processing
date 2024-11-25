@@ -1,5 +1,6 @@
 from typing import Callable, List, cast
 
+import langdetect
 from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.core.schema import Document, TextNode
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding  # type: ignore
@@ -100,7 +101,7 @@ class FunctionChunker(BaseChunker):
                 result[-1] = last_node
             else:
                 result.append(TextNode(text=buffer))
-        result = self._add_length_metadata(result)
+        result = self._add_metadata(result)
         return result
 
     def split_large_chunks_down(self, nodes: List[TextNode]):
@@ -115,11 +116,11 @@ class FunctionChunker(BaseChunker):
                 new_nodes.extend(split_parts)
             else:
                 new_nodes.append(TextNode(text=text))
-        new_nodes = self._add_length_metadata(new_nodes)
+        new_nodes = self._add_metadata(new_nodes)
         return new_nodes
 
-    def _add_length_metadata(self, chunks: List[TextNode]) -> List[TextNode]:
-        return [TextNode(text=chunk.text, metadata={"length": len(chunk.text)}) for chunk in chunks]
+    def _add_metadata(self, chunks: List[TextNode]) -> List[TextNode]:
+        return [TextNode(text=chunk.text, metadata={"length": len(chunk.text), "language": langdetect.detect(chunk.text)}) for chunk in chunks]
 
 
 class ChunkMeta(BaseModel):
