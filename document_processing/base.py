@@ -9,6 +9,10 @@ class BaseChunker(ABC):
     def chunk(self, text, num_words_overlap: int) -> List[TextNode]:
         pass
 
+    @abstractmethod
+    def achunk(self, text: str, num_words_overlap: int):
+        pass
+
     def add_context(self, nodes: List[TextNode], num_words_overlap: int) -> List[TextNode]:
         new_nodes = []
         for i, node in enumerate(nodes):
@@ -61,3 +65,6 @@ class BaseFileProcessor:
 
     def chunk(self, text: str, num_words_overlap: int) -> List[TextNode]:
         return self.chunker.chunk(text, num_words_overlap)
+
+    def achunk(self, text: str, num_words_overlap: int):
+        return self.chunker.achunk(text, num_words_overlap)

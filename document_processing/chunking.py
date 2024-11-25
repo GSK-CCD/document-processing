@@ -36,6 +36,9 @@ class SemanticChunker(BaseChunker):
 
         return self.add_context(nodes, num_words_overlap)
 
+    def achunk(self, text: str, num_words_overlap: int):
+        raise NotImplementedError("SemanticChunker does not support async")
+
 
 class FunctionChunker(BaseChunker):
     """
