@@ -111,7 +111,6 @@ class FunctionChunker(BaseChunker):
                 result[-1] = last_node
             else:
                 result.append(TextNode(text=buffer))
-        result = self._add_metadata(result)
         return result
 
     def split_large_chunks_down(self, nodes: List[TextNode]):
