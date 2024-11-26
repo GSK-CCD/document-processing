@@ -1,6 +1,7 @@
-from typing import Any, Awaitable, Callable, List, Union, cast
+import logging
+from typing import Awaitable, Callable, List, Union, cast
 
-import langdetect
+import langdetect  # type: ignore
 from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.core.schema import Document, TextNode
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding  # type: ignore
@@ -8,8 +9,6 @@ from pydantic import BaseModel  # type: ignore
 
 from document_processing.base import BaseChunker
 from document_processing.embeddings import check_n_embeddings
-from document_processing.factory import file_processor_factory
-from document_processing.word_docs import WordDocProcessor
 
 
 class SemanticChunker(BaseChunker):
@@ -37,7 +36,8 @@ class SemanticChunker(BaseChunker):
         return self.add_context(nodes, num_words_overlap)
 
     def achunk(self, text: str, num_words_overlap: int):
-        raise NotImplementedError("SemanticChunker does not support async")
+        logging.warning("SemanticChunker does not support async, using sync chunk function.")
+        return self.chunk(text, num_words_overlap)
 
 
 class FunctionChunker(BaseChunker):
@@ -73,13 +73,18 @@ class FunctionChunker(BaseChunker):
             chunks = self.combine_short_chunks(chunks)
         return chunks
 
-    def ensure_chunks_small_enough(self, chunks):
+    def ensure_chunks_small_enough(self, chunks, max_attempts_to_split: int = 6):
+        """Some splitting functions could get caught in an infinite loop so we need to set max_n attempts"""
         all_chunks_below_max = False
+        n_attempts = 0
         while True:
             all_chunks_below_max = all(check_n_embeddings(chunk.text, self.chat_model) <= self.max_length for chunk in chunks)
             if all_chunks_below_max:
                 break
             chunks = self.split_large_chunks_down(chunks)
+            n_attempts += 1
+            if n_attempts >= max_attempts_to_split:
+                break
         return chunks
 
     def combine_short_chunks(self, nodes: List[TextNode]) -> List[TextNode]:
@@ -113,7 +118,7 @@ class FunctionChunker(BaseChunker):
                 result.append(TextNode(text=buffer))
         return result
 
-    def split_large_chunks_down(self, nodes: List[TextNode]):
+    def split_large_chunks_down(self, nodes: List[TextNode]) -> List[TextNode]:
         """
         Splits chunks that are too long into smaller chunks using the provided splitting function.
         """
@@ -184,10 +189,10 @@ class Chunks(BaseModel):
         ordered_chunks = [list(entry.values())[0] for entry in sorted_meta_and_chunk]
         return ordered_chunks
 
-    def join_chunks(self, chunks: List[str]):
-        return "\n *** END OF CHUNK *** \n".join([f"[...] {chunk} [...]" for chunk in chunks])
+    def join_chunks(self, chunks: List[str]) -> str:
+        return "\n\n\n\n".join([f"[...] {chunk} [...]" for chunk in chunks])
 
-    def join_self_chunks(self):
+    def join_self_chunks(self) -> str:
         return self.join_chunks(self.chunks)
 
     def pre_process(self):
@@ -195,18 +200,3 @@ class Chunks(BaseModel):
         ordered_chunks = self.order_chunks()
         joined_chunks = self.join_chunks(ordered_chunks)
         return joined_chunks
-
-    def pop_chunk(self):
-        """Removes the last chunk and it's metadata from the list."""
-        self.chunks.pop()
-        self.metas.pop()
-
-
-def chunk_input_file(file, embedding_model, n_overlap, text_extraction_kwargs):
-    """Takes an input file and chunks it into overlapping chunks which can be added to a vector DB."""
-    chunker = SemanticChunker(embed_model=embedding_model)
-    file_processor = file_processor_factory(file)
-    processor = file_processor(file, chunker=chunker)
-    text = processor.extract_text(**text_extraction_kwargs if isinstance(processor, WordDocProcessor) else {})
-    text_nodes = processor.chunk(text, num_words_overlap=n_overlap)
-    return text_nodes

@@ -38,7 +38,7 @@ class BaseChunker(ABC):
         if from_start:
             return " ".join(words[: num_spaces + 1])
         else:
-            return " ".join(words[-num_spaces:])
+            return " ".join(words[-num_spaces - 1 :])
 
     def _add_context(self, node: TextNode, previous_node: Optional[TextNode], next_node: Optional[TextNode], n_words: int) -> str:
         """Adds some overlapping text from the previous and next chunks to the current chunk."""
