@@ -200,3 +200,8 @@ class Chunks(BaseModel):
         ordered_chunks = self.order_chunks()
         joined_chunks = self.join_chunks(ordered_chunks)
         return joined_chunks
+
+    def pop_chunk(self):
+        """Removes the last chunk and it's metadata from the list."""
+        self.chunks.pop()
+        self.metas.pop()
