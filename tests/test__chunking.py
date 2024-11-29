@@ -30,6 +30,14 @@ def splitter(text: str):
             [TextNode(text="How many apples in a bunch? "), TextNode(text="This is "), TextNode(text="a test."), TextNode(text=" Goodbye.")],
             [TextNode(text="How many apples in a bunch? This is a test. Goodbye.")],
         ),
+        (
+            [
+                TextNode(text="This is"),
+                TextNode(text=" a much longer text coming after so add it to the previous."),
+                TextNode(text="This is long enough to be alone"),
+            ],
+            [TextNode(text="This is a much longer text coming after so add it to the previous."), TextNode(text="This is long enough to be alone")],
+        ),
     ],
 )
 def test__function_chunker_short_chunks(chunks: List[TextNode], expected: List[TextNode]):

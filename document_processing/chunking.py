@@ -94,7 +94,8 @@ class FunctionChunker(BaseChunker):
         for node in nodes:
             string = node.text
             if check_n_embeddings(string, self.chat_model) < self.min_length:
-                # Combine short strings with the buffer
+                buffer += string
+            elif check_n_embeddings(buffer, self.chat_model) < self.min_length:
                 buffer += string
             else:
                 # Append buffer to the result if it exists
