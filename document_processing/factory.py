@@ -5,7 +5,7 @@ from document_processing.base import BaseFileProcessor
 from document_processing.pdfs import PdfProcessor
 from document_processing.word_docs import WordDocProcessor
 
-file_type_processors = {"pdf": PdfProcessor, "docx": WordDocProcessor}
+file_type_processors = {"pdf": PdfProcessor, "docx": WordDocXFileProcessor}
 
 
 def file_processor_factory(file_path: str) -> Type[BaseFileProcessor]:
