@@ -607,6 +607,25 @@ files = [
 ]
 
 [[package]]
+name = "docx2python"
+version = "3.3.0"
+description = "Extract content from docx files"
+optional = false
+python-versions = ">=3.8.0"
+files = [
+    {file = "docx2python-3.3.0-py3-none-any.whl", hash = "sha256:0a661b31e451a13081bd9c7405f0f350800a157e9c9c834a61811fb7f2d9cb59"},
+    {file = "docx2python-3.3.0.tar.gz", hash = "sha256:38a50e05b3ff91456cb0c0ef497c3458f1f3f4aa557a85a47bedd935becdd371"},
+]
+
+[package.dependencies]
+lxml = "*"
+paragraphs = "*"
+typing_extensions = "*"
+
+[package.extras]
+dev = ["commitizen", "pre-commit", "pytest", "tox", "types-lxml"]
+
+[[package]]
 name = "filetype"
 version = "1.2.0"
 description = "Infer file type and MIME type of any file/buffer. No external dependencies."
@@ -1978,6 +1997,20 @@ test = ["hypothesis (>=6.46.1)", "pytest (>=7.3.2)", "pytest-xdist (>=2.2.0)"]
 xml = ["lxml (>=4.9.2)"]
 
 [[package]]
+name = "paragraphs"
+version = "1.0.1"
+description = "Incorporate long strings painlessly, beautifully into Python code."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "paragraphs-1.0.1-py3-none-any.whl", hash = "sha256:9a189d8dfc6241b5caa9b3ae730ee6ccce53e483d3b45183d13f657f7d0d1b35"},
+    {file = "paragraphs-1.0.1.tar.gz", hash = "sha256:ad393f2e99432740f36c115280aa454c53c8048e6a2cda0b81df4effc8043a60"},
+]
+
+[package.extras]
+dev = ["commitizen", "pre-commit", "pytest", "tox"]
+
+[[package]]
 name = "pathspec"
 version = "0.12.1"
 description = "Utility library for gitignore style pattern matching of file paths."
@@ -3164,4 +3197,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "aeafead91ada82d6e6bdec8a46f15b5f97fdedbd66fedbb65d5348d6bc88bcea"
+content-hash = "7398e53ef6e94dd2ba09bf6f3adcd9f78350a9ebf93842dcb5ca21779143fc07"

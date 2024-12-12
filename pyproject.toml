@@ -17,6 +17,7 @@ isort = "^5.13.2"
 pymupdf4llm = "^0.0.17"
 langdetect = "^1.0.9"
 pytest = "^8.3.3"
+docx2python = "^3.3.0"
 
 
 [build-system]

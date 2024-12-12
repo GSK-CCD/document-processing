@@ -1,6 +1,7 @@
 from typing import Optional
 
 from docx import Document
+from docx2python import docx2python
 from docx.oxml.table import CT_Tbl as table_type
 from docx.oxml.text.paragraph import CT_P as paragraph_type
 from docx.table import Table
@@ -49,3 +50,20 @@ class WordDocProcessor(BaseFileProcessor):
             if i == 0:
                 table_text += "| --- " * len(row.cells) + "|\n"
         return table_text
+
+
+class WordDocXFileProcessor(BaseFileProcessor):
+
+    def extract_text(self):
+        document = docx2python(self.file_name)
+        output_text = ""
+        for string_section in self.get_strings_from_list(document.body):
+            output_text += string_section
+        return output_text
+
+    def get_strings_from_list(self, _list: list):
+        for item in _list:
+            if isinstance(item, list):
+                yield from self.get_strings_from_list(item)
+            else:
+                yield item
