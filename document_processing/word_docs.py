@@ -10,7 +10,7 @@ from starlette import datastructures
 from document_processing.base import BaseFileProcessor
 
 
-class WordDocXProcessor(BaseFileProcessor):
+class WordDocXFileProcessor(BaseFileProcessor):
 
     async def _get_doc(self):
         if isinstance(self.file_name, str):
