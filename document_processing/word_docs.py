@@ -1,32 +1,26 @@
-from io import BytesIO
 from typing import Optional
 
 from docx import Document
 from docx.oxml.table import CT_Tbl as table_type
 from docx.oxml.text.paragraph import CT_P as paragraph_type
 from docx.table import Table
-from starlette import datastructures
 
 from document_processing.base import BaseFileProcessor
 
 
 class WordDocXFileProcessor(BaseFileProcessor):
 
-    async def _get_doc(self):
+    def _get_doc(self):
         if isinstance(self.file_name, str):
             return Document(self.file_name)
-        elif isinstance(self.file_name, datastructures.UploadFile):
-            page = await self.file_name.read()
-            doc = Document(BytesIO(page))
-            return doc
         else:
-            raise ValueError(f"file_name must be either a string or a datastructures.UploadFile, got '{type(self.file_name)}'")
+            raise ValueError(f"file_name must be a string, got '{type(self.file_name)}'")
 
-    async def extract_text(self, target_column: Optional[int] = None) -> str:
+    def extract_text(self, target_column: Optional[int] = None) -> str:
         """
         Takes a Word file and extracts the text from it to a string.
         """
-        doc = await self._get_doc()
+        doc = self._get_doc()
         full_text = ""
         tables = doc.tables
         for element in doc.element.body:
