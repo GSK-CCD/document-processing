@@ -14,6 +14,7 @@ class BaseChunker(ABC):
         pass
 
     def add_context(self, nodes: List[TextNode], num_words_overlap: int) -> List[TextNode]:
+        """Takes some overlapping text from the previous and next chunks and adds it to the current chunk."""
         new_nodes = []
         for i, node in enumerate(nodes):
             if num_words_overlap:

@@ -12,6 +12,7 @@ from document_processing.embeddings import check_n_embeddings
 
 
 class SemanticChunker(BaseChunker):
+    """A chunker that uses semantic splitting to split the text into chunks."""
 
     def __init__(
         self,
@@ -20,7 +21,7 @@ class SemanticChunker(BaseChunker):
         breakpoint_percentile_threshold: int = 95,
     ):
         self.embed_model = embed_model
-        self.sentence_splitter = SemanticSplitterNodeParser(
+        self.semantic_splitter = SemanticSplitterNodeParser(
             buffer_size=buffer_size,
             breakpoint_percentile_threshold=breakpoint_percentile_threshold,
             embed_model=embed_model,
@@ -30,19 +31,18 @@ class SemanticChunker(BaseChunker):
         """Chunks text into overlapping chunks."""
 
         text_document = Document(text=text)
-
-        nodes = cast(List[TextNode], self.sentence_splitter.get_nodes_from_documents([text_document]))
+        nodes = cast(List[TextNode], self.semantic_splitter.get_nodes_from_documents([text_document]))
 
         return self.add_context(nodes, num_words_overlap)
 
     def achunk(self, text: str, num_words_overlap: int):
-        logging.warning("SemanticChunker does not support async, using sync chunk function.")
-        return self.chunk(text, num_words_overlap)
+        raise NotImplementedError("SemanticChunker does not support async, please use the sync version `.chunk(text, num_words_overlap)` instead.")
 
 
 class FunctionChunker(BaseChunker):
     """
     A chunker that uses any user defined function to split the text into chunks.
+    Function should return a list of TextNodes.
     """
 
     def __init__(
@@ -123,11 +123,11 @@ class FunctionChunker(BaseChunker):
         """
         Splits chunks that are too long into smaller chunks using the provided splitting function.
         """
-        new_nodes = []
+        new_nodes: List[TextNode] = []
         for node in nodes:
             text = node.text
             if check_n_embeddings(text, self.chat_model) > self.max_length:
-                split_parts = self.splitting_function(text)
+                split_parts: List[TextNode] = self.splitting_function(text)
                 new_nodes.extend(split_parts)
             else:
                 new_nodes.append(TextNode(text=text))
