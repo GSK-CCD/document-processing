@@ -1,3 +1,14 @@
+# Document Processing
+
+This is a rpject which was priginally created with the intention of being re-usable code to standardize the way that we
+process files like PDFs and word files. In the end it was mostly abandoned (although it is still used in a couple of
+the earlier projects we worked on) and is thus not all that important.
+
+The repo reads files and performs chunking. One of the chunking methods developed here in the repo uses an LLM to generate a
+regex expression which can be used to split a document into it's main sections. For example, some files use chapter names 
+for new sections, others may use symbols. This is why using an LLM seemed like a good fit. The LLM will read a couple pages of the document, and it should then figure out which convention a given file is using for section or chapter titles. The LLM
+then tries to generate a valid regex expression which will split the text based on these sections. 
+
 # Install
 
 ```bash
